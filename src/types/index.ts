@@ -2,7 +2,7 @@ export type Region = 'EUW1' | 'EUN1' | 'NA1' | 'KR' | 'BR1' | 'JP1' | 'LA1' | 'L
 export type RoutingRegion = 'europe' | 'americas' | 'asia' | 'sea';
 
 export interface Player {
-  id: number;
+  id: string;
   gameName: string;
   tagLine: string;
   region: Region;

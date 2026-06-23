@@ -7,9 +7,9 @@ export async function GET(req: NextRequest) {
 
   let rows: any[];
   if (playerIdStr) {
-    rows = getMatchesForPlayer(parseInt(playerIdStr), 50);
+    rows = await getMatchesForPlayer(playerIdStr, 50);
   } else {
-    const cache = getMatchCache();
+    const cache = await getMatchCache();
     rows = Object.values(cache).flat();
   }
 

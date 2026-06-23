@@ -4,7 +4,7 @@ import { getLiveGame } from '@/lib/riot';
 import { Region } from '@/types';
 
 export async function GET() {
-  const players = getPlayers().filter(p => p.puuid);
+  const players = (await getPlayers()).filter(p => p.puuid);
   const liveGames = await Promise.all(
     players.map(async (player) => {
       try {

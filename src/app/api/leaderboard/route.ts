@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { getPlayers, setRankedForPlayer, getRankedCache, updatePlayer, getMatchCache, updateLPSnapshot } from '@/lib/db';
+import { getPlayers, setRankedForPlayer, getRankedCache, updatePlayer, getMatchesForPlayer, updateLPSnapshot } from '@/lib/db';
 import { getAccountByRiotId, getRankedStatsByPuuid, getSummonerByPuuid, getMatchIds, getMatch } from '@/lib/riot';
 import { Region } from '@/types';
 import { getRankScore } from '@/lib/helpers';
@@ -45,7 +45,7 @@ async function ensureSummonerId(player: any) {
   if (!currentPlayer.puuid) {
     const account = await getAccountByRiotId(currentPlayer.gameName, currentPlayer.tagLine, currentPlayer.region as Region);
     if (!account) return null;
-    currentPlayer = updatePlayer(currentPlayer.id, {
+    currentPlayer = await updatePlayer(currentPlayer.id, {
       puuid: account.puuid,
       accountId: account.accountId || account.id || undefined,
     }) || currentPlayer;
@@ -71,7 +71,7 @@ async function ensureSummonerId(player: any) {
 
   if (!summonerId) return null;
 
-  currentPlayer = updatePlayer(currentPlayer.id, {
+  currentPlayer = await updatePlayer(currentPlayer.id, {
     summonerId,
     profileIconId,
     summonerLevel,
@@ -81,16 +81,15 @@ async function ensureSummonerId(player: any) {
 }
 
 export async function GET() {
-  const players = getPlayers();
-  const rankedCache = getRankedCache();
+  const players = await getPlayers();
+  const rankedCache = await getRankedCache();
 
   const results = await Promise.all(
     players.map(async (player) => {
       const cached = rankedCache[player.id];
 
       // derive match-based stats (use cached matches as a fallback when league data is not available)
-      const matchCache = getMatchCache();
-      const allMatches = (matchCache[player.id] || []).slice().sort((a, b) => b.gameCreation - a.gameCreation).slice(0, 50);
+      const allMatches = await getMatchesForPlayer(player.id, 50);
       const soloMatches = allMatches.filter((m) => m.queueId === 420);
       const winsFromMatches = soloMatches.reduce((s, m) => s + (m.win ? 1 : 0), 0);
       const gamesFromMatches = soloMatches.length;
@@ -114,7 +113,7 @@ export async function GET() {
           const solo = entries.find((e) => e.queueType === 'RANKED_SOLO_5x5');
           if (!solo) {
             const unranked = makeUnranked();
-            setRankedForPlayer(player.id, 'RANKED_SOLO_5x5', unranked);
+            await setRankedForPlayer(player.id, 'RANKED_SOLO_5x5', unranked);
             return { ...player, ranked: unranked, games: gamesFromMatches, wins: winsFromMatches, losses: lossesFromMatches, winRate: winRateFromMatches, recent: recentFromMatches };
           }
 
@@ -129,7 +128,7 @@ export async function GET() {
             hotStreak: solo.hotStreak,
           };
 
-          setRankedForPlayer(player.id, 'RANKED_SOLO_5x5', ranked);
+          await setRankedForPlayer(player.id, 'RANKED_SOLO_5x5', ranked);
 
           const gamesFromLeague = (solo.wins || 0) + (solo.losses || 0);
           const winRateFromLeague = gamesFromLeague ? Math.round((solo.wins / gamesFromLeague) * 100) : 0;
@@ -139,7 +138,7 @@ export async function GET() {
           // Update snapshot and compute delta (updateLPSnapshot preserves previousTotalLp internally)
           let lpSnapshot;
           try {
-            lpSnapshot = updateLPSnapshot(player.puuid, currentTotalLp);
+            lpSnapshot = await updateLPSnapshot(player.puuid, currentTotalLp);
           } catch {
             lpSnapshot = undefined;
           }

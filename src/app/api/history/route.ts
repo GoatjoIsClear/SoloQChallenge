@@ -1,26 +1,25 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getPlayers, addMatch, getMatchesForPlayer, setMatchesForPlayer } from '@/lib/db';
+import { getPlayers, getMatchesForPlayer, setMatchesForPlayer } from '@/lib/db';
 import { getMatchIds, getMatch } from '@/lib/riot';
 import { Region } from '@/types';
 
 export async function GET(req: NextRequest) {
   const { searchParams } = new URL(req.url);
-  const playerIdStr = searchParams.get('playerId');
+  const playerId = searchParams.get('playerId');
 
-  const players = getPlayers().filter((p) => p.puuid);
-  if (playerIdStr) {
-    const playerId = parseInt(playerIdStr);
+  const players = (await getPlayers()).filter((p) => p.puuid);
+  if (playerId) {
     const player = players.find((p) => p.id === playerId);
     if (!player) return NextResponse.json([]);
     await syncMatches(player);
-    return NextResponse.json(getMatchesForPlayer(playerId, 20));
+    return NextResponse.json(await getMatchesForPlayer(playerId, 20));
   }
 
   await Promise.all(players.map((p) => syncMatches(p)));
 
-  const allMatches: Record<number, any[]> = {};
+  const allMatches: Record<string, any[]> = {};
   for (const p of players) {
-    allMatches[p.id] = getMatchesForPlayer(p.id, 10);
+    allMatches[p.id] = await getMatchesForPlayer(p.id, 10);
   }
   return NextResponse.json(allMatches);
 }
@@ -70,7 +69,7 @@ async function syncMatches(player: any) {
     }
 
     if (freshMatches.length) {
-      setMatchesForPlayer(player.id, freshMatches);
+      await setMatchesForPlayer(player.id, freshMatches);
     }
   } catch {
     /* skip */

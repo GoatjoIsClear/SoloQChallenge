@@ -49,7 +49,7 @@ function RecentChampions({ matches }: { matches: any[] }) {
 
 export default function LeaderboardPage() {
   const [players, setPlayers] = useState<PlayerWithStats[]>([]);
-  const [history, setHistory] = useState<Record<number, any[]>>({});
+  const [history, setHistory] = useState<Record<string, any[]>>({});
   const [loading, setLoading] = useState(true);
   const [lastUpdate, setLastUpdate] = useState<Date | null>(null);
 

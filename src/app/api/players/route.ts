@@ -4,7 +4,7 @@ import { getAccountByRiotId, getSummonerByPuuid, getRankedStatsByPuuid, getMatch
 import { Region } from '@/types';
 
 export async function GET() {
-  return NextResponse.json(getPlayers());
+  return NextResponse.json(await getPlayers());
 }
 
 export async function POST(req: NextRequest) {
@@ -54,7 +54,7 @@ export async function POST(req: NextRequest) {
   }
 
   try {
-    const player = addPlayer({
+    const player = await addPlayer({
       gameName,
       tagLine,
       region,
@@ -70,7 +70,7 @@ export async function POST(req: NextRequest) {
         const entries = await getRankedStatsByPuuid(puuid, region as Region);
         const solo = entries?.find((e: any) => e.queueType === 'RANKED_SOLO_5x5');
         if (solo) {
-          setRankedForPlayer(player.id, 'RANKED_SOLO_5x5', {
+          await setRankedForPlayer(player.id, 'RANKED_SOLO_5x5', {
             queueType: 'RANKED_SOLO_5x5',
             tier: solo.tier,
             rank: solo.rank,
